@@ -1,1 +1,1 @@
-monitor: python vnv_restock.py
+monitor: python zalando-restock.py
