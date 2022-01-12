@@ -12,11 +12,10 @@ CONFIG = dotenv.dotenv_values()
 DELAY = CONFIG['DELAY']
 INSTOCK = []
 
-product_urls = [
-    'https://superkicks.in/product/cl-legacy-chalk-blue-2/',
-    ' https://superkicks.in/product/jurassic-park-stomper/'
-]
-
+s = requests.Session()
+res = s.get("https://api.npoint.io/2ae327ce555df178f588")
+prod_json = res.json()
+product_urls = prod_json
 
 def discord_webhook(product_item):
     data = {}
@@ -25,22 +24,20 @@ def discord_webhook(product_item):
     data["embeds"] = []
     embed = {}
     if product_item == 'initial':
-        embed["author"] = {'name': "CONNECTED @ SK RESTOCK", 'url': 'https://www.vegnonveg.com/',
-                           'icon_url': 'https://i.ytimg.com/vi/UumOWHyCMBM/hqdefault.jpg'}
+        embed["author"] = {'name': "CONNECTED @ ZALANDO", 'url': 'https://www.zalando.de/',
+                           'icon_url': 'https://imgur.com/XzXLEdl.png'}
         embed["description"] = "Cache Cleared Successfully!"
     else:
-        embed["author"] = {'name': "RESTOCK @ SK", 'url': 'https://www.vegnonveg.com/',
-                           'icon_url': 'https://i.ytimg.com/vi/UumOWHyCMBM/hqdefault.jpg'}
+        embed["author"] = {'name': "UPDATE @ ZALANDO", 'url': 'https://www.zalando.de/',
+                           'icon_url': 'https://imgur.com/XzXLEdl.png'}
         embed["title"] = product_item['Title']
-        embed["description"] = f"**Price: **{product_item['Price']}\n**Stock Status: **{product_item['Stock Status']}\n**Sizes Available: **{product_item['Sizes']}"
+        embed["description"] = f"**Price: **\n{product_item['Price']}\n**Stock Status: **\n{product_item['Stock Status']}\n**Sizes: **\n{product_item['Sizes']}"
         embed['url'] = product_item['Url']
         embed['thumbnail'] = {'url': product_item['Image']}
 
     embed["color"] = int(CONFIG['COLOUR'])
-    embed["footer"] = {'text': 'SK Monitor',
-                       'icon_url': 'https://i.ytimg.com/vi/UumOWHyCMBM/hqdefault.jpg'}
-    embed["fields"] = [{'name': 'Quick Links: ', 'value': '[StockX](https://www.stockx.com)' + ' | ' + '[Goat](https://www.goat.com)' +
-                        ' | ' + '[eBay](https://www.ebay.com/)', 'inline': True}]
+    embed["footer"] = {'text': 'Zalando Monitor',
+                       'icon_url': 'https://imgur.com/XzXLEdl.png'}
     embed["timestamp"] = str(datetime.datetime.utcnow())
     data["embeds"].append(embed)
 
@@ -63,6 +60,7 @@ def checking_stocks(start):
         if product_urls:
             instock = check_stocks(product_urls)
             for product in instock:
+                print(product)
                 if product['Stock Status'] == 'In Stock':
                     if product not in INSTOCK:
                         if(start == 0):
@@ -83,7 +81,7 @@ def monitor():
     print('STARTING MONITOR')
     logging.info(msg='Successfully started monitor')
     discord_webhook('initial')
-    start = 1
+    start = 0
     while True:
         print("Starting next cycle")
         checking_stocks(start)

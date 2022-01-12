@@ -2,53 +2,53 @@ import json
 import requests
 from bs4 import BeautifulSoup
 from concurrent.futures import ThreadPoolExecutor
-import urllib
+from decimal import Decimal
 
 
 def scrape_site(url):
-
-    hdr = {'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.11 (KHTML, like Gecko) Chrome/23.0.1271.64 Safari/537.11',
-           'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-           'Accept-Charset': 'ISO-8859-1,utf-8;q=0.7,*;q=0.3',
-           'Accept-Encoding': 'none',
-           'Accept-Language': 'en-US,en;q=0.8',
-           'Connection': 'keep-alive'}
-    req = urllib.request.Request(url=url, headers=hdr)
-    response = urllib.request.urlopen(req).read()
-
-    soup = BeautifulSoup(response, "html.parser")
-    error_page = soup.find("h1").text.strip()
-
-    if "404!" in error_page:
-        print('Error Page Also Being Tracked!')
-    else:
-        script = str(soup.find_all(type = 'application/ld+json')[1])
-        json_data = json.loads(script[script.index('{'): script.rfind('}') + 1])
-        product_name = json_data["name"]
-        product_image = json_data["image"]
-        product_price = json_data["offers"][0]['priceSpecification']['price']
-        product_availability = json_data["offers"][0]['availability']
-        product_sizes = []
-        sizeData = soup.find('ul',{'class':'variable-items-wrapper'})
-        for sizes in sizeData.find_all('li'):
-            product_sizes.append(sizes.text)
-
-        if product_sizes: 
-            return {
-                'Title': product_name,
-                'Price': f'Rs {product_price}',
-                'Url': url,
-                'Image': product_image,
-                'Sizes':' '.join([str(elem) for elem in product_sizes]) ,
-                'Stock Status': 'In Stock' if 'InStock' in product_availability else 'Out of Stock'
-            }
-
+    s = requests.Session()
+    hdrs = {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 6.1; WOW64; rv:54.0) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/84.0.4147.89 Safari/537.36'}
+    response = s.get(url=url, headers=hdrs, verify=True)
+    soup = BeautifulSoup(response.text, "html.parser")
+    try:
+        if response.status_code==404:
+            print('Error Page Also Being Tracked!')
         else:
-            return {
-                'Title': product_name,
-                'Url': url,
-                'Stock Status': 'OOS'
-            }
+            script = str(soup.find_all(type='application/ld+json')[0]).replace("&quot;",'"')
+            json_data = json.loads(script[script.index('{'): script.rfind('}') + 1])
+            product_name = json_data["name"]
+            product_image = json_data["image"][0]
+            product_price = json_data['offers'][0]['price']
+            # product_availability = json_data["offers"]['availability']
+            product_sizes = json_data["offers"]
+            sizes_available = []
+            # print(soup)
+            # print(sizeData)
+            for size in product_sizes:
+                if size["availability"] == "http://schema.org/InStock":
+                    sizes_available.append(Decimal(size["sku"][-6:-3])/10)
+            
+            # print(sizes_available)
+            if sizes_available:
+                return {
+                        'Title': product_name,
+                        'Price': f'EUR {product_price}',
+                        'Url': url,
+                        'Image': product_image,
+                        'Sizes':' '.join([str(elem) for elem in sizes_available]) ,
+                        'Stock Status': 'In Stock'
+                }
+
+            else:
+                return {
+                        'Title': product_name,
+                        'Url': url,
+                        'Stock Status': 'OOS'
+                }
+    except Exception as e:
+        print(e)
+
 
 
 def check_stocks(urls):
@@ -65,6 +65,6 @@ def check_stocks(urls):
 
 if __name__ == '__main__':
     urls = [
-        'https://superkicks.in/product/cl-legacy-chalk-blue-2/'
+        "https://en.zalando.de/nike-sportswear-court-vintage-prem-trainers-whiteblacktotal-orange-ni112o0dw-a11.html"
         ]
     print(check_stocks(urls))
