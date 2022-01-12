@@ -81,7 +81,7 @@ def monitor():
     print('STARTING MONITOR')
     logging.info(msg='Successfully started monitor')
     discord_webhook('initial')
-    start = 0
+    start = 1
     while True:
         print("Starting next cycle")
         checking_stocks(start)
